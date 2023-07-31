@@ -13,59 +13,13 @@
             margin: 15px;
         }
 
-        body {
+
+         body {
             font-family: Arial, sans-serif;
             gap: 16px;
             height: 100vh;
             margin: 15px;
-
-        }
-
-        nav {
-            background-color: #007bff;
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        nav ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-        }
-
-        nav li {
-            margin-right: 20px;
-        }
-
-        nav li:last-child {
-            margin-right: 0;
-        }
-
-        nav a {
-            color: #ffffff;
-            text-decoration: none;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        nav a:hover {
-            text-decoration: underline;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            color: #ffffff;
-        }
-
-        .user-info img {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            margin-left: 10px;
+           
         }
 
         .todo-list {
@@ -149,18 +103,7 @@
 </head>
 
 <body>
-    <nav>
-        <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/about">About</a></li>
-            <li><a href="/logout">Logout</a></li>
-        </ul>
-        <div class="user-info">
-            <span>Welcome, <%= name %></span>
-            
-        </div>
-
-    </nav>
+    <%- include("component/header") %>
     <div class="container">
     <section>
         <h2>What is ToDo?</h2>

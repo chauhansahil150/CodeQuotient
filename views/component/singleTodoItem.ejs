@@ -1,0 +1,11 @@
+<!-- taskItem.ejs -->
+<li>
+    <span id="<%= todo.id %>">
+        <%= todo.text %>
+    </span>
+    <div>
+        <button onclick="editTodo('<%= todo.id %>')">Edit</button>
+        <input type="checkbox" id="<%= todo.id %>" class="strikethrough" onclick="completedTodo('<%= todo.id %>')">
+        <button onclick="deleteTodo('<%= todo.id %>')">&times;</button>
+    </div>
+</li>

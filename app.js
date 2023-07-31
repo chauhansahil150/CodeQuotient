@@ -61,8 +61,10 @@ app.get('/', function (req, res) {
         res.redirect("/login");
         return;
     }
+    const todos = readDataFile(dataFilePathForTodo);
     res.render("index", {
-        name:req.session.name,
+        name: req.session.name,
+        todos:todos
     })
 });
 app.get('/signup', function (req, res) {
@@ -73,12 +75,6 @@ app.get('/signup', function (req, res) {
         const name = req.body.name;
         const email = req.body.email;
         const password = req.body.password;
-
-        const user = {
-            name:name,
-            email:email,
-            password:password,
-        };
         getAllUsers(function (err, data) {
             if (err) {
                 res.end("something went wrong");
@@ -92,8 +88,13 @@ app.get('/signup', function (req, res) {
                 res.end("Already have an account");
                 return;
             }
-            
-            saveUser(user, function (err) {
+            const Newuser = {
+                name: name,
+                email: email,
+                password: password,
+            };
+
+            saveUser(Newuser, function (err) {
                 if (err) {
                     res.end("something went wrong");
                     return;
