@@ -12,18 +12,31 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
-
+const path = require('path');
+// const { Session } = require('inspector');
+const session = require("express-session");
+const dataFilePathForTodo = './data.json';
 const app = express();
 const port = 8000;
 
-// app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(express.static(__dirname));
+// app.use(express.static(__dirname));
+// The express.static middleware is serving the static files (such as index.html) from the root directory (__dirname) of your application. This means that any file present in the root directory can be accessed directly via its URL
+
+app.set("view engine", "ejs")
+app.set("views", path.resolve("./views")); // to tell where are our v
+
+app.use(
+    session({
+        secret: "sahil@123",
+        resave: false,
+        saveUninitialized: true,
+    })
+);
 
 
-const dataFilePath = './data.json';
-
-function readDataFile() {
+function readDataFile(dataFilePath) {
     try {
         const data = fs.readFileSync(dataFilePath, 'utf8');
         return JSON.parse(data);
@@ -35,7 +48,7 @@ function readDataFile() {
 
 // Update the writeDataFile function
 function writeDataFile(data) {
-    fs.writeFile(dataFilePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
+    fs.writeFile(dataFilePathForTodo, JSON.stringify(data, null, 2), 'utf8', (err) => {
         if (err) {
             console.error('Error writing data file:', err);
         } else {
@@ -43,41 +56,112 @@ function writeDataFile(data) {
         }
     });
 }
+app.get('/', function (req, res) {
+    if (!req.session.isLogginIn) {
+        res.redirect("/login");
+        return;
+    }
+    res.render("index", {
+        name:req.session.name,
+    })
+});
+app.get('/signup', function (req, res) {
+    // res.sendFile(__dirname + "/views/signup.html")
+    res.render("signup");
+})
+    .post('/signup', function (req, res) {
+        const name = req.body.name;
+        const email = req.body.email;
+        const password = req.body.password;
 
+        const user = {
+            name:name,
+            email:email,
+            password:password,
+        };
+        getAllUsers(function (err, data) {
+            if (err) {
+                res.end("something went wrong");
+                return;
+            }
+            const user = data.find(function (user) {
+                return user.email === email && user.password === password;
+            });
 
+            if (user) {
+                res.end("Already have an account");
+                return;
+            }
+            
+            saveUser(user, function (err) {
+                if (err) {
+                    res.end("something went wrong");
+                    return;
+                }
+                res.redirect("/login");
+            });
+        });
+        
+    });
+app.get("/login", function (req, res) {
+    res.render("login", { error: null });
+})
+    .post('/login', function (req, res) {
+        const email = req.body.email;
+        const password = req.body.password;
+        // console.log(email);
+
+        getAllUsers(function (err, data) {
+            if (err) {
+                res.render("login", { error: "somthing went wrong" });
+                return;
+            }
+            const user = data.find(function (user) {
+                return user.email === email && user.password === password;
+            });
+
+            if (user) {
+                req.session.isLogginIn = true,
+                req.session.email = email;
+                req.session.name = user.name;
+                res.redirect('/');
+                return;
+            }
+            // res.render("login", { error: "Invalid username or password" });
+            res.end("Inavlid username or password")
+        });
+    });
+app.get('/logout', (req, res) => {
+    req.session.isLogginIn = false;
+    res.redirect('/login');
+
+})
+app.get('/about', (req, res) => {
+    // res.sendFile(__dirname + "/views/about.html");
+    res.render("about", {
+        name:req.session.name,
+    });
+});
 app.get('/todos', (req, res) => {
-    const todos = readDataFile();
+    const todos = readDataFile(dataFilePathForTodo);
     res.json(todos);
-});
-
-app.post('/todos', (req, res) => {
+})
+.post('/todos', (req, res) => {
     const newTodo = req.body;
     newTodo.id = uuidv4();
 
-    const todos = readDataFile();
+    const todos = readDataFile(dataFilePathForTodo);
     todos.push(newTodo);
     writeDataFile(todos);
 
     res.json(newTodo);
 });
-
-app.post('/todos', (req, res) => {
-    const newTodo = req.body;
-    newTodo.id = uuidv4();
-
-    const todos = readDataFile();
-    todos.push(newTodo);
-    writeDataFile(todos);
-
-    res.json(newTodo);
-});
-
 
 app.put('/todos/:id', (req, res) => {
     const id = req.params.id;
     const updatedTodo = req.body;
 
-    const todos = readDataFile();
+    const todos = readDataFile(dataFilePathForTodo);
     const index = todos.findIndex(todo => todo.id === id);
 
     if (index !== -1) {
@@ -92,7 +176,7 @@ app.put('/todos/:id', (req, res) => {
 app.delete('/todos/:id', (req, res) => {
     const id = req.params.id;
 
-    const todos = readDataFile();
+    const todos = readDataFile(dataFilePathForTodo);
     const updatedTodos = todos.filter(todo => todo.id !== id);
 
     if (todos.length !== updatedTodos.length) {
@@ -103,6 +187,42 @@ app.delete('/todos/:id', (req, res) => {
     }
 });
 
+
+
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
+
+function saveUser(user, callback) {
+    getAllUsers(function (err, data) {
+        if (err) {
+            callback(err);
+            return;
+        }
+        data.push(user);
+        fs.writeFile("./users.json", JSON.stringify(data), function (err) {
+            if (err) {
+                callback(err);
+                return;
+            }
+            callback(null);
+        });
+    });
+}
+function getAllUsers(callback) {
+    fs.readFile("./users.json", "utf-8", function (err, data) {
+        if (err) {
+            callback(err);
+            return;
+        }
+        if (data.length === 0) {
+            data = "[]";
+        }
+        try {
+            data = JSON.parse(data);
+            callback(null, data);
+        } catch (err) {
+            callback([]);
+        }
+    });
+}

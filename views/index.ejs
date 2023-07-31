@@ -4,7 +4,7 @@
 <head>
     <title>TODO App</title>
     <style>
-        body {
+        .container {
             font-family: Arial, sans-serif;
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -12,7 +12,61 @@
             height: 100vh;
             margin: 15px;
         }
-    
+     body {
+            font-family: Arial, sans-serif;
+            gap: 16px;
+            height: 100vh;
+            margin: 15px;
+           
+        }
+       
+nav {
+    background-color: #007bff;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+}
+
+nav li {
+    margin-right: 20px;
+}
+
+nav li:last-child {
+    margin-right: 0;
+}
+
+nav a {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    color: #ffffff;
+}
+
+.user-info img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-left: 10px;
+}
+
         .todo-list {
             list-style: none;
             padding: 0;
@@ -31,6 +85,7 @@
         .form-container {
             display: flex;
             flex-direction: column;
+            margin: 25px 0 0 0;
         }
     
         .form-container form {
@@ -46,13 +101,13 @@
             padding: 8px 16px;
         }
 
-        ul {
+.container ul {
   list-style-type: none;
   padding: 0;
   margin: 0;
 }
 
-ul li {
+.container  li {
   border: 1px solid #ddd;
   margin-top: -1px; /* Prevent double borders */
   background-color: #f6f6f6;
@@ -64,14 +119,14 @@ ul li {
   position: relative;
 }
 
-ul li div{
+.container ul li div{
     position: absolute;
   right: 5px;
   top: 50%; /* To vertically center the button within the <li> */
   transform: translateY(-50%);
 }
 
-ul li:hover {
+.container  li:hover {
   background-color: #eee;
 }
 
@@ -91,6 +146,19 @@ ul li:hover {
 </head>
 
 <body>
+    <nav>
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/about">About</a></li>
+            <li><a href="/logout">Logout</a></li>
+        </ul>
+        <div class="user-info">
+            <span>Welcome, <%= name %></span>
+
+        </div>
+    
+    </nav>
+   <div class="container"> 
     <div class="todo-container">
         <h1>Task List</h1>
         <ul class="todo-list" id="todoList">
@@ -103,7 +171,7 @@ ul li:hover {
             <button type="submit">Add TODO</button>
         </form>
     </div>
-
+</div>
     <script>
         // Add your JavaScript code here
         const todoForm = document.getElementById('todoForm');
@@ -172,7 +240,7 @@ ul li:hover {
         <span id="${todo.id}">${todo.text}</span>
          <div>
           <button onclick="editTodo('${todo.id}')">Edit</button>
-          <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="complete('${todo.id}')" >
+          <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="completedTodo('${todo.id}')" >
           <button onclick="deleteTodo('${todo.id}')">&times;</button>
           </div>
       `;
