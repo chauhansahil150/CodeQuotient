@@ -74,11 +74,7 @@ app.get('/signup', function (req, res) {
         const email = req.body.email;
         const password = req.body.password;
 
-        const user = {
-            name:name,
-            email:email,
-            password:password,
-        };
+        
         getAllUsers(function (err, data) {
             if (err) {
                 res.end("something went wrong");
@@ -93,15 +89,19 @@ app.get('/signup', function (req, res) {
                 return;
             }
             
-            saveUser(user, function (err) {
+        });
+        const Newuser = {
+            name:name,
+            email:email,
+            password:password,
+        };
+         saveUser(Newuser, function (err) {
                 if (err) {
                     res.end("something went wrong");
                     return;
                 }
                 res.redirect("/login");
             });
-        });
-        
     });
 app.get("/login", function (req, res) {
     res.render("login", { error: null });
