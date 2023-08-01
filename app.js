@@ -15,12 +15,18 @@ const fs = require('fs');
 const path = require('path');
 // const { Session } = require('inspector');
 const session = require("express-session");
+const multer = require('multer');
+const upload = multer({ dest: "uploads/" });
 const dataFilePathForTodo = './data.json';
 const app = express();
 const port = 8000;
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+// app.use(express.static('uploads'));
+app.use('/uploads', express.static('uploads'));
+
+
 // app.use(express.static(__dirname));
 // The express.static middleware is serving the static files (such as index.html) from the root directory (__dirname) of your application. This means that any file present in the root directory can be accessed directly via its URL
 
@@ -32,6 +38,8 @@ app.use(
         secret: "sahil@123",
         resave: false,
         saveUninitialized: true,
+        cookie: { maxAge: 24 * 60 * 60 * 1000 }, // Set the maxAge to 1 day (in milliseconds)
+
     })
 );
 
@@ -56,16 +64,16 @@ function writeDataFile(data) {
         }
     });
 }
+app.post('/photo', upload.single('picture'), (req, res) => {
+    //console.log(req.file);
+    res.send(req.file);
+});
 app.get('/', function (req, res) {
     if (!req.session.isLogginIn) {
         res.redirect("/login");
         return;
     }
-    const todos = readDataFile(dataFilePathForTodo);
-    res.render("index", {
-        name: req.session.name,
-        todos:todos
-    })
+    renderIndexPage(req, res);
 });
 app.get('/signup', function (req, res) {
     // res.sendFile(__dirname + "/views/signup.html")
@@ -147,16 +155,29 @@ app.get('/todos', (req, res) => {
     const todos = readDataFile(dataFilePathForTodo);
     res.json(todos);
 })
-.post('/todos', (req, res) => {
-    const newTodo = req.body;
-    newTodo.id = uuidv4();
 
+// Modify the POST /todos route to handle both text and picture data
+app.post('/todos', upload.single('picture'), (req, res) => {
+    const todoText = req.body.text;
+    const todoPicture = req.file; // The uploaded image file
+
+    // Handle the TODO creation and saving here
+    // ...
+
+    // Respond with the newly created TODO object
+    const newTodo = {
+        text: todoText,
+        id: uuidv4(),
+        picture: todoPicture ? todoPicture.filename : null,
+    };
     const todos = readDataFile(dataFilePathForTodo);
     todos.push(newTodo);
     writeDataFile(todos);
 
     res.json(newTodo);
 });
+
+
 
 app.put('/todos/:id', (req, res) => {
     const id = req.params.id;
@@ -225,5 +246,12 @@ function getAllUsers(callback) {
         } catch (err) {
             callback([]);
         }
+    });
+}
+function renderIndexPage(req, res) {
+    const todos = readDataFile(dataFilePathForTodo);
+    res.render("index", {
+        name: req.session.name,
+        todos: todos
     });
 }

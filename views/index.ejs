@@ -64,26 +64,32 @@
             margin: 0;
         }
 
-        .container li {
-            border: 1px solid #ddd;
-            margin-top: -1px;
-            /* Prevent double borders */
-            background-color: #f6f6f6;
-            padding: 12px;
-            text-decoration: none;
-            font-size: 18px;
-            color: black;
-            display: block;
-            position: relative;
-        }
+       .container ul li {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Add space between text, image, and buttons */
+    border: 1px solid #ddd;
+    margin-top: -1px;
+    /* Prevent double borders */
+    background-color: #f6f6f6;
+    padding: 12px;
+    font-size: 18px;
+    color: black;
+    position: relative;
+}
 
-        .container ul li div {
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            /* To vertically center the button within the <li> */
-            transform: translateY(-50%);
-        }
+.container ul li div {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Add space between buttons */
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    /* To vertically center the buttons within the <li> */
+    transform: translateY(-50%);
+}
+
+
 
         .container li:hover {
             background-color: #eee;
@@ -101,6 +107,14 @@
         .close:hover {
             background: #bbb;
         }
+       .scaled-image {
+    max-width: 80px; /* Set the maximum width */
+    max-height: 60px; /* Set the maximum height */
+    width: 30px; /* Let the browser automatically adjust the width */
+    height: 30px; /* Let the browser automatically adjust the height */
+    margin: 20px;
+    /* Additional styles if needed */
+  }
     </style>
 </head>
 
@@ -112,10 +126,13 @@
                 <%- include("component/data",{ todos:todos}) %>
             </div>
             <div class="form-container">
-                <form id="todoForm">
-                    <input type="text" id="todoText" placeholder="Enter a new TODO" required>
-                    <button type="submit">Add TODO</button>
-                </form>
+            <!-- Modify the form to include both text and picture fields -->
+            <form id="todoForm" enctype="multipart/form-data">
+                <input type="text" id="todoText" placeholder="Enter a new TODO" required>
+                <input type="file" required name='picture' id='picture'>
+                <button type="button" onclick="addTodo()">Add TODO</button>
+            </form>
+
             </div>
         </div>
         <script>
@@ -130,63 +147,112 @@
                         .catch(error => console.error('Error fetching todos:', error));
                 }
 
-            function displayTodos(todos) {
-                todoList.innerHTML = '';
-
-                todos.forEach(todo => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                
-          <span id="${todo.id}">${todo.text}</span>
-          <div>
-          <button onclick="editTodo('${todo.id}')">Edit</button>
-          <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="completedTodo('${todo.id}')" >
-          <button onclick="deleteTodo('${todo.id}')">&times;</button>
-          </div>
-         `;
-                    todoList.appendChild(li);
-                });
+            
+           async function completedTodo(id) {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                    const isChecked = checkbox.checked;
+                    const span = checkbox.parentNode.previousSibling;
+                    if (span) {
+                        span.style.textDecoration = isChecked ? 'line-through' : 'none';
+                    }
+                }
             }
-            async function completedTodo(todoid) {
-                const spanElement = await document.getElementById(todoid);
-                if (spanElement) {
-                    spanElement.style.textDecoration = spanElement.style.textDecoration === "line-through" ? "none" : "line-through";
+
+            // JavaScript code to add a new TODO with text and picture
+                async function addTodo() {
+                    const todoTextInput= document.getElementById('todoText')
+                    const todoText = todoTextInput.value.trim();
+                    const todoPictureInput = document.getElementById('picture');
+                    const todoPicture = todoPictureInput.files[0];
+
+                    if (todoText === '' || !todoPicture) return;
+
+                    const formData = new FormData();
+                    formData.append('text', todoText);
+                    formData.append('picture', todoPicture);
+
+                    try {
+                        const response = await fetch('/todos', {
+                            method: 'POST',
+                            body: formData,
+                        });
+
+                        const newTodo = await response.json();
+                        todoTextInput.value = '';
+                        todoPictureInput.value='';
+
+                        displayNewTodo(newTodo); // Call the new function to display the new TODO item
+                    } catch (error) {
+                        console.error('Error adding todo:', error);
+                    }
                 }
 
-            }
+                // Modify the displayTodos function to show images (if available) for each task
+                function displayTodos(todos) {
+                    const todoList = document.getElementById('todoList');
+                    todoList.innerHTML = '';
 
-            async function addTodo() {
-                const text = todoText.value.trim();
-                if (text === '') return;
+                    todos.forEach(todo => {
+                        const li = document.createElement('li');
+                        const span = document.createElement('span');
+                        const image = document.createElement('img');
+                        const div = document.createElement('div');
+                        image.width = 50;
+                        image.height = 50;
 
-                try {
-                    const response = await fetch('/todos', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text }),
+                        span.textContent = todo.text;
+                        image.src = todo.picture ? `/uploads/${todo.picture}` : 'placeholder.png';
+                        image.alt = 'Todo Image';
+                        div.innerHTML = `
+            <button onclick="editTodo('${todo.id}')">Edit</button>
+            <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="completedTodo('${todo.id}')">
+            <button onclick="deleteTodo('${todo.id}')">&times;</button>
+        `;
+
+                       
+                        li.appendChild(image);
+                        li.appendChild(span);
+                        li.appendChild(div);
+
+                        todoList.appendChild(li);
                     });
-
-                    const newTodo = await response.json();
-                    todoText.value = '';
-                    displayNewTodo(newTodo); // Call the new function to display the new TODO item
-                } catch (error) {
-                    console.error('Error adding todo:', error);
                 }
+
+// The rest of the JavaScript code remains the same.
+
+
+        //    <!-- Modify the displayNewTodo function to show the image (if available) for the new task -->
+            function displayNewTodo(todo) {
+                const todoList = document.getElementById('todoList');
+                const li = document.createElement('li');
+                const span = document.createElement('span');
+                const div = document.createElement('div');
+
+                span.textContent = todo.text;
+                div.innerHTML = `
+        <button onclick="editTodo('${todo.id}')">Edit</button>
+        <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="completedTodo('${todo.id}')">
+        <button onclick="deleteTodo('${todo.id}')">&times;</button>
+    `;
+
+                // If the task has an associated image, create an image element and set its src attribute
+                if (todo.picture) {
+                    const img = document.createElement('img');
+                    img.src = `/uploads/${todo.picture}`;
+                    img.alt = 'Todo Image';
+                    img.classList.add('scaled-image'); // Add the 'scaled-image' class to the image element
+                    li.appendChild(img);
+                }
+
+                li.appendChild(span);
+                li.appendChild(div);
+
+                todoList.appendChild(li);
+                
             }
 
-            function displayNewTodo(todo) {
-                const li = document.createElement('li');
-                li.innerHTML = `
-           
-        <span id="${todo.id}">${todo.text}</span>
-         <div>
-          <button onclick="editTodo('${todo.id}')">Edit</button>
-          <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="completedTodo('${todo.id}')" >
-          <button onclick="deleteTodo('${todo.id}')">&times;</button>
-          </div>
-      `;
-                todoList.appendChild(li);
-            }
+
 
             async function editTodo(id) {
                 const newText = prompt('Enter the updated text:');
@@ -207,8 +273,6 @@
             }
 
             async function deleteTodo(id) {
-                if (!confirm('Are you sure you want to delete this TODO?')) return;
-
                 try {
                     await fetch(`/todos/${id}`, { method: 'DELETE' });
                     fetchTodos();
@@ -218,7 +282,7 @@
             }
 
             todoForm.addEventListener('submit', event => {
-                event.preventDefault();
+                // event.preventDefault();
                 addTodo();
             });
             fetchTodos();
