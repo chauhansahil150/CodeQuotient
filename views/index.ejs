@@ -205,9 +205,9 @@
                         image.src = todo.picture ? `/uploads/${todo.picture}` : 'placeholder.png';
                         image.alt = 'Todo Image';
                         div.innerHTML = `
-            <button onclick="editTodo('${todo.id}')">Edit</button>
+            <button onclick="editTodo('${todo._id}')">Edit</button>
             <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="completedTodo('${todo.id}')">
-            <button onclick="deleteTodo('${todo.id}')">&times;</button>
+            <button onclick="deleteTodo('${todo._id}')">&times;</button>
         `;
 
                        
@@ -231,9 +231,9 @@
 
                 span.textContent = todo.text;
                 div.innerHTML = `
-        <button onclick="editTodo('${todo.id}')">Edit</button>
+        <button onclick="editTodo('${todo._id}')">Edit</button>
         <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="completedTodo('${todo.id}')">
-        <button onclick="deleteTodo('${todo.id}')">&times;</button>
+        <button onclick="deleteTodo('${todo._id}')">&times;</button>
     `;
 
                 // If the task has an associated image, create an image element and set its src attribute

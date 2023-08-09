@@ -14,12 +14,20 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 // const { Session } = require('inspector');
+const mongoose = require('mongoose');
 const session = require("express-session");
 const multer = require('multer');
 const upload = multer({ dest: "uploads/" });
 const dataFilePathForTodo = './data.json';
 const app = express();
 const port = 8000;
+
+const User = require("./models/user");
+const Todo = require("./models/todo");
+
+mongoose.connect("mongodb://127.0.0.1:27017/CQ-todo-app")
+    .then(() => console.log("mongodb connected"))
+    .catch ((err) => console.log("mongo error: " + err));
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -44,26 +52,6 @@ app.use(
 );
 
 
-function readDataFile(dataFilePath) {
-    try {
-        const data = fs.readFileSync(dataFilePath, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error('Error reading data file:', error);
-        return [];
-    }
-}
-
-// Update the writeDataFile function
-function writeDataFile(data) {
-    fs.writeFile(dataFilePathForTodo, JSON.stringify(data, null, 2), 'utf8', (err) => {
-        if (err) {
-            console.error('Error writing data file:', err);
-        } else {
-            console.log('Data file updated successfully.');
-        }
-    });
-}
 app.post('/photo', upload.single('picture'), (req, res) => {
     //console.log(req.file);
     res.send(req.file);
@@ -79,66 +67,33 @@ app.get('/signup', function (req, res) {
     // res.sendFile(__dirname + "/views/signup.html")
     res.render("signup");
 })
-    .post('/signup', function (req, res) {
+    .post('/signup', async function (req, res) {
         const name = req.body.name;
         const email = req.body.email;
         const password = req.body.password;
-        getAllUsers(function (err, data) {
-            if (err) {
-                res.end("something went wrong");
-                return;
-            }
-            const user = data.find(function (user) {
-                return user.email === email && user.password === password;
-            });
-
-            if (user) {
-                res.end("Already have an account");
-                return;
-            }
-            const Newuser = {
-                name: name,
-                email: email,
-                password: password,
-            };
-
-            saveUser(Newuser, function (err) {
-                if (err) {
-                    res.end("something went wrong");
-                    return;
-                }
-                res.redirect("/login");
-            });
-        });
-        
+        const createdUser=await User.create({
+            name,
+            email,
+            password,
+        })
+        console.log(createdUser);
+        return res.status(201).json({ msg: "success" });
     });
 app.get("/login", function (req, res) {
     res.render("login", { error: null });
 })
-    .post('/login', function (req, res) {
+    .post('/login', async function (req, res) {
         const email = req.body.email;
         const password = req.body.password;
         // console.log(email);
-
-        getAllUsers(function (err, data) {
-            if (err) {
-                res.render("login", { error: "somthing went wrong" });
-                return;
-            }
-            const user = data.find(function (user) {
-                return user.email === email && user.password === password;
-            });
-
-            if (user) {
+        const user = await User.findOne({ email, password })
+        if (!user) return res.render('login', {
+            LogInError: "invalid user name or password",
+        })
                 req.session.isLogginIn = true,
                 req.session.email = email;
                 req.session.name = user.name;
-                res.redirect('/');
-                return;
-            }
-            // res.render("login", { error: "Invalid username or password" });
-            res.end("Inavlid username or password")
-        });
+                res.redirect('/');      
     });
 app.get('/logout', (req, res) => {
     req.session.isLogginIn = false;
@@ -151,13 +106,13 @@ app.get('/about', (req, res) => {
         name:req.session.name,
     });
 });
-app.get('/todos', (req, res) => {
-    const todos = readDataFile(dataFilePathForTodo);
+app.get('/todos',async (req, res) => {
+    const todos = await Todo.find({});
     res.json(todos);
 })
 
 // Modify the POST /todos route to handle both text and picture data
-app.post('/todos', upload.single('picture'), (req, res) => {
+app.post('/todos', upload.single('picture'), async (req, res) => {
     const todoText = req.body.text;
     const todoPicture = req.file; // The uploaded image file
 
@@ -165,47 +120,43 @@ app.post('/todos', upload.single('picture'), (req, res) => {
     // ...
 
     // Respond with the newly created TODO object
-    const newTodo = {
+    const newTodo = await Todo.create({
         text: todoText,
         id: uuidv4(),
         picture: todoPicture ? todoPicture.filename : null,
-    };
-    const todos = readDataFile(dataFilePathForTodo);
-    todos.push(newTodo);
-    writeDataFile(todos);
-
+    });
     res.json(newTodo);
 });
 
-
-
-app.put('/todos/:id', (req, res) => {
+app.put('/todos/:id', async (req, res) => {
     const id = req.params.id;
     const updatedTodo = req.body;
 
-    const todos = readDataFile(dataFilePathForTodo);
-    const index = todos.findIndex(todo => todo.id === id);
-
-    if (index !== -1) {
-        todos[index] = { ...todos[index], ...updatedTodo };
-        writeDataFile(todos);
-        res.json(todos[index]);
-    } else {
-        res.status(404).json({ error: 'Todo not found' });
+    try {
+        const todo = await Todo.findByIdAndUpdate(id, updatedTodo, { new: true });
+        if (todo) {
+            res.json(todo);
+        } else {
+            res.status(404).json({ error: 'Todo not found' });
+        }
+    } catch (error) {
+        res.status(500).send("Error updating todo");
     }
 });
 
-app.delete('/todos/:id', (req, res) => {
+
+app.delete('/todos/:id', async (req, res) => {
     const id = req.params.id;
 
-    const todos = readDataFile(dataFilePathForTodo);
-    const updatedTodos = todos.filter(todo => todo.id !== id);
-
-    if (todos.length !== updatedTodos.length) {
-        writeDataFile(updatedTodos);
-        res.sendStatus(204);
-    } else {
-        res.status(404).json({ error: 'Todo not found' });
+    try {
+        const deletedTodo = await Todo.findByIdAndDelete(id);
+        if (deletedTodo) {
+            res.sendStatus(204);
+        } else {
+            res.status(404).json({ error: 'Todo not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
@@ -215,41 +166,8 @@ app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
-function saveUser(user, callback) {
-    getAllUsers(function (err, data) {
-        if (err) {
-            callback(err);
-            return;
-        }
-        data.push(user);
-        fs.writeFile("./users.json", JSON.stringify(data), function (err) {
-            if (err) {
-                callback(err);
-                return;
-            }
-            callback(null);
-        });
-    });
-}
-function getAllUsers(callback) {
-    fs.readFile("./users.json", "utf-8", function (err, data) {
-        if (err) {
-            callback(err);
-            return;
-        }
-        if (data.length === 0) {
-            data = "[]";
-        }
-        try {
-            data = JSON.parse(data);
-            callback(null, data);
-        } catch (err) {
-            callback([]);
-        }
-    });
-}
-function renderIndexPage(req, res) {
-    const todos = readDataFile(dataFilePathForTodo);
+async function renderIndexPage(req, res) {
+    const todos = await Todo.find({});
     res.render("index", {
         name: req.session.name,
         todos: todos

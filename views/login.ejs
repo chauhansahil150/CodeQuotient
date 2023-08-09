@@ -101,6 +101,11 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" placeholder="Enter your password" required/>
            </div>
+           <div>
+           <% if (locals.LogInError) { %>
+            <p style="color: red;"><%= locals.LogInError %></p>
+           <% } %>
+           </div>
             <button type="submit">Login</button>
         </form>
         <div class="signup-link">
