@@ -12,7 +12,6 @@
             height: 100vh;
             margin: 15px;
         }
-
         body {
             font-family: Arial, sans-serif;
             gap: 16px;
@@ -20,10 +19,6 @@
             margin: 15px;
 
         }
-
-
-
-
         .todo-list {
             list-style: none;
             padding: 0;
@@ -88,9 +83,6 @@
     /* To vertically center the buttons within the <li> */
     transform: translateY(-50%);
 }
-
-
-
         .container li:hover {
             background-color: #eee;
         }
@@ -192,7 +184,6 @@
                 function displayTodos(todos) {
                     const todoList = document.getElementById('todoList');
                     todoList.innerHTML = '';
-
                     todos.forEach(todo => {
                         const li = document.createElement('li');
                         const span = document.createElement('span');
@@ -200,21 +191,17 @@
                         const div = document.createElement('div');
                         image.width = 50;
                         image.height = 50;
-
                         span.textContent = todo.text;
                         image.src = todo.picture ? `/uploads/${todo.picture}` : 'placeholder.png';
                         image.alt = 'Todo Image';
                         div.innerHTML = `
-            <button onclick="editTodo('${todo._id}')">Edit</button>
-            <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="completedTodo('${todo.id}')">
-            <button onclick="deleteTodo('${todo._id}')">&times;</button>
-        `;
-
-                       
+                        <button onclick="editTodo('${todo._id}')">Edit</button>
+                        <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="completedTodo('${todo.id}')">
+                        <button onclick="deleteTodo('${todo._id}')">&times;</button>
+                        `;
                         li.appendChild(image);
                         li.appendChild(span);
                         li.appendChild(div);
-
                         todoList.appendChild(li);
                     });
                 }
@@ -231,10 +218,10 @@
 
                 span.textContent = todo.text;
                 div.innerHTML = `
-        <button onclick="editTodo('${todo._id}')">Edit</button>
-        <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="completedTodo('${todo.id}')">
-        <button onclick="deleteTodo('${todo._id}')">&times;</button>
-    `;
+                <button onclick="editTodo('${todo._id}')">Edit</button>
+                <input type="checkbox" id="${todo.id}" class="strikethrough" onclick="completedTodo('${todo.id}')">
+                <button onclick="deleteTodo('${todo._id}')">&times;</button>
+            `;
 
                 // If the task has an associated image, create an image element and set its src attribute
                 if (todo.picture) {
@@ -247,13 +234,8 @@
 
                 li.appendChild(span);
                 li.appendChild(div);
-
-                todoList.appendChild(li);
-                
+                todoList.appendChild(li);   
             }
-
-
-
             async function editTodo(id) {
                 const newText = prompt('Enter the updated text:');
                 if (newText === null || newText.trim() === '') return;

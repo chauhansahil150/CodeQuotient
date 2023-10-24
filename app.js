@@ -8,6 +8,7 @@
 // User Story 3 : Whenever you mark the checkbox, update the status of the task to completed at server.In the above screenshot First & Third Task mark as completed.
 
 // User Story 4 : When you click on the cross icon, delete that task from the left pane as well as from the server.Refer the below screenshot where Second Task is removed after click on the cross icon.
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');
@@ -20,19 +21,15 @@ const multer = require('multer');
 const upload = multer({ dest: "uploads/" });
 const dataFilePathForTodo = './data.json';
 const app = express();
-const port = 8000;
+const port = process.env.PORT ||8000;
 
 const User = require("./models/user");
 const Todo = require("./models/todo");
 
-mongoose.connect("mongodb://127.0.0.1:27017/CQ-todo-app")
-    .then(() => console.log("mongodb connected"))
-    .catch ((err) => console.log("mongo error: " + err));
-
-app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 // app.use(express.static('uploads'));
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads/', express.static('uploads'));
 
 
 // app.use(express.static(__dirname));
@@ -43,7 +40,7 @@ app.set("views", path.resolve("./views")); // to tell where are our v
 
 app.use(
     session({
-        secret: "sahil@123",
+        secret: process.env.SECRET,
         resave: false,
         saveUninitialized: true,
         cookie: { maxAge: 24 * 60 * 60 * 1000 }, // Set the maxAge to 1 day (in milliseconds)
@@ -68,19 +65,40 @@ app.get('/signup', function (req, res) {
     res.render("signup");
 })
     .post('/signup', async function (req, res) {
+       try {
         const name = req.body.name;
         const email = req.body.email;
         const password = req.body.password;
-        const createdUser=await User.create({
-            name,
-            email,
-            password,
-        })
-        console.log(createdUser);
-        return res.status(201).json({ msg: "success" });
+        const user = await User.findOne({ email })
+        if (user) {
+             res.render('signup', {
+                error: "User Already Exists",
+            });
+            res.end();
+        }else{
+            const createdUser = await User.create({
+                name,
+                email,
+                password,
+            })
+            console.log(createdUser);
+            // return res.status(201).json({ msg: "success" });
+            res.render('signup',{
+                message:"User Created Successfully",
+            })
+        }
+       } catch (error) {
+        console.log(error);
+       }
+       
     });
 app.get("/login", function (req, res) {
+    if (req.session.isLogginIn) {
+        res.redirect("/");
+        return;
+    }
     res.render("login", { error: null });
+    return;
 })
     .post('/login', async function (req, res) {
         const email = req.body.email;
@@ -90,10 +108,10 @@ app.get("/login", function (req, res) {
         if (!user) return res.render('login', {
             LogInError: "invalid user name or password",
         })
-                req.session.isLogginIn = true,
-                req.session.email = email;
-                req.session.name = user.name;
-                res.redirect('/');      
+        req.session.isLogginIn = true,
+            req.session.email = email;
+        req.session.name = user.name;
+        res.redirect('/');
     });
 app.get('/logout', (req, res) => {
     req.session.isLogginIn = false;
@@ -103,10 +121,10 @@ app.get('/logout', (req, res) => {
 app.get('/about', (req, res) => {
     // res.sendFile(__dirname + "/views/about.html");
     res.render("about", {
-        name:req.session.name,
+        name: req.session.name,
     });
 });
-app.get('/todos',async (req, res) => {
+app.get('/todos', async (req, res) => {
     const todos = await Todo.find({});
     res.json(todos);
 })
@@ -162,9 +180,14 @@ app.delete('/todos/:id', async (req, res) => {
 
 
 
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-});
+mongoose.connect(process.env.MONGO_URL)
+    .then(() => {
+        app.listen(port, () => {
+            console.log("mongodb connected")
+            console.log(`Server is running on port ${port}`);
+        });
+    })
+    .catch((err) => console.log("mongo error: " + err));
 
 async function renderIndexPage(req, res) {
     const todos = await Todo.find({});
